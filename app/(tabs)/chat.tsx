@@ -8,10 +8,9 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<string[]>([]);
   const [model, setModel] = useState('');
   const [isModelModalVisible, setIsModelModalVisible] = useState(false);
+  const [isImageGeneration, setIsImageGeneration] = useState(false);
 
-  const models = [
-    ...chatModels,
-  ];
+  const models = isImageGeneration ? imageModels : chatModels;
 
   const handleSendMessage = () => {
     postMessage();
@@ -19,11 +18,18 @@ export default function ChatScreen() {
 
   const postMessage = async () => {
     if (!model) {
-      setModel('gpt-4o-mini');
+      setModel(isImageGeneration ? 'dall-e-3' : 'gpt-4o-mini');
     }
-    const response = await fetch('http://localhost:3000/api/messages', {
+
+    const endpoint = isImageGeneration ?
+      'http://localhost:3000/api/images' :
+      'http://localhost:3000/api/messages';
+
+    const body = isImageGeneration ? { prompt: message, model } : { message, model };
+
+    const response = await fetch(endpoint, {
       method: 'POST',
-      body: JSON.stringify({ message, model }),
+      body: JSON.stringify(body),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -64,16 +70,16 @@ export default function ChatScreen() {
               {models.map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                style={[
-                  styles.modelItem,
-                  model === item.id && styles.selectedModel
-                ]}
-                onPress={() => {
-                  setModel(item.id);
-                  setIsModelModalVisible(false);
-                }}
-              >
-                <ThemedText style={styles.modelText}>{item.name}</ThemedText>
+                  style={[
+                    styles.modelItem,
+                    model === item.id && styles.selectedModel
+                  ]}
+                  onPress={() => {
+                    setModel(item.id);
+                    setIsModelModalVisible(false);
+                  }}
+                >
+                  <ThemedText style={styles.modelText}>{item.name}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
@@ -84,9 +90,21 @@ export default function ChatScreen() {
 
       <View style={styles.bottomContainer}>
         <View style={styles.inputContainer}>
+          <View style={styles.checkboxContainer}>
+            <TouchableOpacity
+              style={[styles.checkbox, isImageGeneration && styles.checkboxChecked]}
+              onPress={() => {
+                setIsImageGeneration(!isImageGeneration);
+                setModel(''); // Reset model when switching modes
+              }}
+            >
+              {isImageGeneration && <ThemedText>✓</ThemedText>}
+            </TouchableOpacity>
+            <ThemedText style={styles.checkboxLabel}>Generate Image</ThemedText>
+          </View>
           <TextInput
             style={styles.input}
-            placeholder="Ask me anything"
+            placeholder={isImageGeneration ? "Describe the image you want" : "Ask me anything"}
             value={message}
             onChangeText={setMessage}
             onSubmitEditing={handleSendMessage}
@@ -192,5 +210,26 @@ const styles = StyleSheet.create({
   modelText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#2196f3',
+    borderRadius: 4,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#2196f3',
+  },
+  checkboxLabel: {
+    fontSize: 14,
   },
 });
