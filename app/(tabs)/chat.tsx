@@ -1,20 +1,29 @@
 import { ThemedText } from '@/components/ThemedText';
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, TextInput, View, ScrollView } from 'react-native';
+import { Button, StyleSheet, TextInput, View, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { chatModels, imageModels } from './ai-models';
 
 export default function ChatScreen() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
-  const [model, setModel] = useState('gpt-3.5-turbo');
+  const [model, setModel] = useState('');
+  const [isModelModalVisible, setIsModelModalVisible] = useState(false);
+
+  const models = [
+    ...chatModels,
+  ];
 
   const handleSendMessage = () => {
     postMessage();
   };
 
   const postMessage = async () => {
+    if (!model) {
+      setModel('gpt-4o-mini');
+    }
     const response = await fetch('http://localhost:3000/api/messages', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, model }),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -28,8 +37,10 @@ export default function ChatScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <ThemedText style={styles.headerText}>Chat</ThemedText>
-        <Button title="Clear All" onPress={() => setMessages([])} />
-        {/* <Button title="Change Model" onPress={() => setModel('gpt-4o')} /> */}
+        <View style={styles.headerButtons}>
+          <Button title="Clear All" onPress={() => setMessages([])} />
+          <Button title="Change Model" onPress={() => setIsModelModalVisible(true)} />
+        </View>
       </View>
 
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
@@ -39,6 +50,37 @@ export default function ChatScreen() {
           </View>
         ))}
       </ScrollView>
+
+      <Modal
+        visible={isModelModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModelModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>Select Model</ThemedText>
+            <View style={styles.modelList}>
+              {models.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                style={[
+                  styles.modelItem,
+                  model === item.id && styles.selectedModel
+                ]}
+                onPress={() => {
+                  setModel(item.id);
+                  setIsModelModalVisible(false);
+                }}
+              >
+                <ThemedText style={styles.modelText}>{item.name}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Button title="Close" onPress={() => setIsModelModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.bottomContainer}>
         <View style={styles.inputContainer}>
@@ -72,6 +114,10 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
   },
   messagesContainer: {
     flex: 1,
@@ -108,5 +154,43 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
     padding: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '90%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modelList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modelItem: {
+    padding: 8,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  selectedModel: {
+    backgroundColor: '#2196f3',
+  },
+  modelText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
