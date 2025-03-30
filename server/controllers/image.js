@@ -1,23 +1,18 @@
 const axios = require('../utils/axiosConfig');
 
 const generateImage = async (req, res) => {
-  const { prompt, model } = req.body;
+  const { message, model } = req.body;
 
-  const requestBody = {
-    prompt,
-    n: 1,
-    size: '1024x1024',
-    response_format: 'url',
-    model,
-  }
+  const requestBody = buildRequestBody(message, model);
+
   try {
     const response = await axios.post('https://oneapi.gptnb.ai/v1/images/generations', requestBody,
       {
         headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.API_KEY}`
-      }
-    });
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.API_KEY}`
+        }
+      });
 
     res.json({ image: response.data.data[0].url });
   } catch (error) {
@@ -25,6 +20,31 @@ const generateImage = async (req, res) => {
     res.status(500).json({ error: 'Failed to get response from AI service' });
   }
 }
+
+
+function buildRequestBody(message, model) {
+  let requestBody = {}
+
+  if (model === 'dall-e-3') {
+    requestBody = {
+      prompt: message,
+      n: 1,
+      size: '1024x1024',
+      response_format: 'url',
+      model,
+    }
+  }
+
+  if (model === 'gpt-4-image') {
+    requestBody = {
+      model,
+      messages: [{ role: 'user', content: message }],
+    }
+  }
+
+  return requestBody;
+}
+
 
 module.exports = {
   generateImage
