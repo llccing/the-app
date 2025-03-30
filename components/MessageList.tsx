@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { ThemedText } from './ThemedText';
+import { MarkdownDisplay } from './MarkdownDisplay';
 
 export type Message = {
   role: 'user' | 'assistant';
@@ -22,7 +23,11 @@ export function MessageList({ messages }: MessageListProps) {
           ]}
         >
           <ThemedText style={styles.messageRole}>{message.role}</ThemedText>
-          <ThemedText style={styles.messageText}>{message.content}</ThemedText>
+          {message.role === 'assistant' ? (
+            <MarkdownDisplay content={message.content} />
+          ) : (
+            <ThemedText style={styles.messageText}>{message.content}</ThemedText>
+          )}
         </View>
       ))}
     </View>
