@@ -16,3 +16,4 @@ export const chatModels = [
 export const imageModels = [
   { id: 'dall-e-3', name: 'Dall-E 3' }
 ]
+export default { chatModels, imageModels };

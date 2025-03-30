@@ -1,133 +1,137 @@
 import { ThemedText } from '@/components/ThemedText';
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, TextInput, View, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { Button, StyleSheet, TextInput, View, ScrollView, TouchableOpacity } from 'react-native';
 import { chatModels, imageModels } from './ai-models';
+import { ModelSelectionModal } from '@/components/ModelSelectionModal';
+import FixedHeaderScrollView from '@/components/FixedHeaderScrollView';
+import { MessageList, Message } from '@/components/MessageList';
 
 export default function ChatScreen() {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<string[]>([]);
-  const [model, setModel] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [model, setModel] = useState('gpt-4o-mini');
   const [isModelModalVisible, setIsModelModalVisible] = useState(false);
   const [isImageGeneration, setIsImageGeneration] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const models = isImageGeneration ? imageModels : chatModels;
 
   const handleSendMessage = () => {
+    if (!message.trim() || isLoading) return;
     postMessage();
   };
 
   const postMessage = async () => {
-    if (!model) {
-      setModel(isImageGeneration ? 'dall-e-3' : 'gpt-4o-mini');
+    setIsLoading(true);
+    try {
+      if (!model) {
+        setModel(isImageGeneration ? 'dall-e-3' : 'gpt-4o-mini');
+      }
+
+      const endpoint = isImageGeneration ?
+        'http://localhost:3000/api/images' :
+        'http://localhost:3000/api/messages';
+
+      const body = isImageGeneration ? { prompt: message, model } : { message, model };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const mockResponse = await response.json();
+
+      const userMessage: Message = { role: 'user', content: message };
+      setMessages([...messages, userMessage]);
+
+      const assistantMessage: Message = { role: 'assistant', content: mockResponse.message };
+      setMessages(messages => [...messages, assistantMessage]);
+      setMessage('');
+      console.log(mockResponse);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    const endpoint = isImageGeneration ?
-      'http://localhost:3000/api/images' :
-      'http://localhost:3000/api/messages';
-
-    const body = isImageGeneration ? { prompt: message, model } : { message, model };
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    const mockResponse = await response.json();
-    setMessages([...messages, mockResponse.message]);
-    console.log(mockResponse);
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.headerText}>Chat</ThemedText>
-        <View style={styles.headerButtons}>
-          <Button title="Clear All" onPress={() => setMessages([])} />
-          <Button title="Change Model" onPress={() => setIsModelModalVisible(true)} />
-        </View>
-      </View>
-
-      <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
-        {messages.map((message, index) => (
-          <View key={index} style={styles.messageWrapper}>
-            <ThemedText style={styles.messageText}>{message}</ThemedText>
-          </View>
-        ))}
-      </ScrollView>
-
-      <Modal
-        visible={isModelModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setIsModelModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Select Model</ThemedText>
-            <View style={styles.modelList}>
-              {models.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.modelItem,
-                    model === item.id && styles.selectedModel
-                  ]}
-                  onPress={() => {
-                    setModel(item.id);
-                    setIsModelModalVisible(false);
-                  }}
-                >
-                  <ThemedText style={styles.modelText}>{item.name}</ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Button title="Close" onPress={() => setIsModelModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
-      <View style={styles.bottomContainer}>
-        <View style={styles.inputContainer}>
-          <View style={styles.checkboxContainer}>
-            <TouchableOpacity
-              style={[styles.checkbox, isImageGeneration && styles.checkboxChecked]}
-              onPress={() => {
-                setIsImageGeneration(!isImageGeneration);
-                setModel(''); // Reset model when switching modes
-              }}
-            >
-              {isImageGeneration && <ThemedText>✓</ThemedText>}
-            </TouchableOpacity>
-            <ThemedText style={styles.checkboxLabel}>Generate Image</ThemedText>
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder={isImageGeneration ? "Describe the image you want" : "Ask me anything"}
-            value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={handleSendMessage}
-          />
-        </View>
-        <Button title="Send" onPress={handleSendMessage} />
+  const Header = (
+    <View style={styles.header}>
+      <ThemedText style={styles.headerText}>
+        Chat - {model}
+      </ThemedText>
+      <View style={styles.headerButtons}>
+        <Button title="Clear All" onPress={() => setMessages([])} />
+        <Button title="Change Model" onPress={() => setIsModelModalVisible(true)} />
       </View>
     </View>
+  );
+
+  const Footer = (
+    <View style={styles.bottomContainer}>
+      <View style={styles.inputContainer}>
+        <View style={styles.checkboxContainer}>
+          <TouchableOpacity
+            style={[styles.checkbox, isImageGeneration && styles.checkboxChecked]}
+            onPress={() => {
+              setIsImageGeneration(!isImageGeneration);
+              setModel('');
+            }}
+          >
+            {isImageGeneration && <ThemedText>✓</ThemedText>}
+          </TouchableOpacity>
+          <ThemedText style={styles.checkboxLabel}>Generate Image</ThemedText>
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder={isImageGeneration ? "Describe the image you want" : "Ask me anything"}
+          value={message}
+          onChangeText={setMessage}
+          onSubmitEditing={handleSendMessage}
+        />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button 
+          title={isLoading ? "Sending..." : "Send"} 
+          onPress={handleSendMessage}
+          disabled={isLoading || !message.trim()}
+        />
+      </View>
+    </View>
+  );
+
+  return (
+    <FixedHeaderScrollView
+      header={Header}
+      footer={Footer}
+      headerHeight={100}
+      footerHeight={120}
+    >
+      <MessageList messages={messages} />
+
+      <ModelSelectionModal
+        isVisible={isModelModalVisible}
+        onClose={() => setIsModelModalVisible(false)}
+        models={models}
+        selectedModel={model}
+        onSelectModel={setModel}
+      />
+    </FixedHeaderScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   header: {
+    flex: 1,
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    backgroundColor: '#fff',
   },
   headerText: {
     fontSize: 18,
@@ -136,9 +140,6 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     gap: 8,
-  },
-  messagesContainer: {
-    flex: 1,
   },
   messagesContent: {
     padding: 16,
@@ -173,44 +174,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 10,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '90%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modelList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  modelItem: {
-    padding: 8,
-    paddingLeft: 16,
-    paddingRight: 16,
-    borderRadius: 8,
-    marginBottom: 10,
-    backgroundColor: '#f0f0f0',
-  },
-  selectedModel: {
-    backgroundColor: '#2196f3',
-  },
-  modelText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -231,5 +194,9 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
+  },
+  buttonContainer: {
+    justifyContent: 'flex-end',
+    paddingBottom: 2,
   },
 });
