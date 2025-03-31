@@ -6,7 +6,9 @@ const generateImage = async (req, res) => {
   const requestBody = buildRequestBody(message, model);
 
   try {
-    const response = await axios.post('https://oneapi.gptnb.ai/v1/images/generations', requestBody,
+    // default host name: oneapi.gptnb.ai
+    // host name: oneapi-cn.gptnb.ai
+    const response = await axios.post('https://oneapi-cn.gptnb.ai/v1/images/generations', requestBody,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -35,7 +37,7 @@ function buildRequestBody(message, model) {
     }
   }
 
-  if (model === 'gpt-4-image') {
+  if (model === 'gpt-4-image' || model === 'gpt-4o-image') {
     requestBody = {
       model,
       messages: [{ role: 'user', content: message }],

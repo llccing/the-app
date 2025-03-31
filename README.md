@@ -7,7 +7,7 @@ A React Native app that allows you to chat with AI.
 ## ToDo List
 
 - [~] image generation
-- [ ] add markdown display for ai response
+- [-] add markdown display for ai response
 - [ ] add voice chat
 - [ ] add voice generation
 - [ ] add voice recognition
