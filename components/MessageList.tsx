@@ -1,10 +1,13 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Image } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { MarkdownDisplay } from './MarkdownDisplay';
 
 export type Message = {
   role: 'user' | 'assistant';
+  type: 'text' | 'image';
   content: string;
+  imageUrl?: string;
+  revisedPrompt?: string;
 };
 
 type MessageListProps = {
@@ -23,10 +26,14 @@ export function MessageList({ messages }: MessageListProps) {
           ]}
         >
           <ThemedText style={styles.messageRole}>{message.role}</ThemedText>
-          {message.role === 'assistant' ? (
-            <MarkdownDisplay content={message.content} />
-          ) : (
-            <ThemedText style={styles.messageText}>{message.content}</ThemedText>
+          {message.type === 'text' && (
+              <MarkdownDisplay content={message.content} />
+            )
+          }
+          {message.type === 'image' && (<View style={styles.imageContainer}>
+              <Image source={{ uri: message.imageUrl }} style={styles.messageImage} />
+              <ThemedText style={styles.messageText}>{message.revisedPrompt}</ThemedText>
+            </View>
           )}
         </View>
       ))}
@@ -62,5 +69,13 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+  },
+  imageContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
   },
 }); 

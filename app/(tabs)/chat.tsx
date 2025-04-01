@@ -21,7 +21,7 @@ export default function ChatScreen() {
     setIsLoading(true);
     try {
       if (!model) {
-        setModel(isImageGeneration ? 'dall-e-3' : 'gpt-4o-mini');
+        setModel(isImageGeneration ? 'dall-e-2' : 'gpt-4o-mini');
       }
 
       const endpoint = isImageGeneration ?
@@ -37,15 +37,19 @@ export default function ChatScreen() {
           'Content-Type': 'application/json',
         },
       });
-      const mockResponse = await response.json();
+      const responseData = await response.json();
 
-      const userMessage: Message = { role: 'user', content: message };
+      const userMessage: Message = { role: 'user', content: message, type: 'text' };
       setMessages([...messages, userMessage]);
 
-      const assistantMessage: Message = { role: 'assistant', content: mockResponse.message };
+      let assistantMessage: Message;
+      if (isImageGeneration) {
+        assistantMessage = { role: 'assistant', content: responseData.image, type: 'image', imageUrl: responseData.image, revisedPrompt: responseData.revised_prompt };
+      } else {
+        assistantMessage = { role: 'assistant', content: responseData.message, type: 'text' };
+      }
       setMessages(messages => [...messages, assistantMessage]);
       setMessage('');
-      console.log(mockResponse);
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {

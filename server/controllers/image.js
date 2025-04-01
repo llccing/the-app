@@ -8,15 +8,17 @@ const generateImage = async (req, res) => {
   try {
     // default host name: oneapi.gptnb.ai
     // host name: oneapi-cn.gptnb.ai
-    const response = await axios.post('https://oneapi-cn.gptnb.ai/v1/images/generations', requestBody,
+    // another vender https://hk.uniapi.io
+    const response = await axios.post('https://hk.uniapi.io/v1/images/generations', requestBody,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.API_KEY}`
+          'Authorization': `Bearer ${process.env.UNI_API_KEY}`
         }
       });
 
-    res.json({ image: response.data.data[0].url });
+    const data = response.data.data[0];
+    res.json({ image: data.url, revised_prompt: data.revised_prompt });
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to get response from AI service' });
