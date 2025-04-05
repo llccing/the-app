@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Audio } from 'expo-av';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -7,23 +7,36 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 
 interface ShadowingLessonScreenProps {
   onRecordingComplete: (audioUri: string) => Promise<void>;
+  story: string | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
-export function ShadowingLessonScreen({ onRecordingComplete }: ShadowingLessonScreenProps) {
+export function ShadowingLessonScreen({ onRecordingComplete, story, isLoading, error }: ShadowingLessonScreenProps) {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   async function startRecording() {
     try {
+      // Clear any previous errors
+      setPermissionError(null);
+      
       // Request permissions
-      await Audio.requestPermissionsAsync();
+      const permissionResponse = await Audio.requestPermissionsAsync();
+      if (!permissionResponse.granted) {
+        setPermissionError("Microphone permission not granted. Please enable microphone access.");
+        return;
+      }
+      
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
 
+      console.log('start recording', Audio.Recording)
       // Start recording
       const { recording } = await Audio.Recording.createAsync({
         ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
@@ -38,6 +51,7 @@ export function ShadowingLessonScreen({ onRecordingComplete }: ShadowingLessonSc
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording', err);
+      setPermissionError("Could not access microphone. Please make sure your device has a working microphone.");
     }
   }
 
@@ -99,9 +113,27 @@ export function ShadowingLessonScreen({ onRecordingComplete }: ShadowingLessonSc
       <ThemedView style={styles.container}>
         <ThemedText type="title">English Shadowing</ThemedText>
         
-        {/* Add your lesson list or main content here */}
         <ThemedView style={styles.lessonContainer}>
-          <ThemedText type="subtitle">Available Lessons</ThemedText>
+          <ThemedText type="subtitle">Today's Story</ThemedText>
+          
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#A1CEDC" />
+          ) : error ? (
+            <ThemedView style={styles.errorContainer}>
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </ThemedView>
+          ) : story ? (
+            <ThemedView style={styles.storyContainer}>
+              <ThemedText>{story}</ThemedText>
+            </ThemedView>
+          ) : null}
+          
+          {/* Error message */}
+          {permissionError && (
+            <ThemedView style={styles.errorContainer}>
+              <ThemedText style={styles.errorText}>{permissionError}</ThemedText>
+            </ThemedView>
+          )}
           
           {/* Recording button */}
           <TouchableOpacity
@@ -137,6 +169,12 @@ const styles = StyleSheet.create({
   lessonContainer: {
     gap: 12,
   },
+  storyContainer: {
+    padding: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginTop: 8,
+  },
   recordButton: {
     padding: 16,
     backgroundColor: '#A1CEDC',
@@ -150,5 +188,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+  },
+  errorContainer: {
+    padding: 12,
+    backgroundColor: '#FFE0E0',
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: '#D32F2F',
+    textAlign: 'center',
   },
 }); 

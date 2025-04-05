@@ -14,20 +14,19 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ 
-//   storage: storage,
-//   fileFilter: (req, file, cb) => {
-//     if (file.mimetype.startsWith('audio/')) {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only audio files are allowed!'));
-//     }
-//   }
-}).any();
-// }).single('file');
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed!'));
+    }
+  }
+}).single('audio');
 
 const scoreShadowing = async (req, res) => {    
-    console.log('req.file===>', req.file);
-    console.log('Uploaded file path:', req.file ? req.file.path : 'No file uploaded');
+    // console.log('req.file===>', req.file);
+    // console.log('Uploaded file path:', req.file ? req.file.path : 'No file uploaded');
 
 
   try {
